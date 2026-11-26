@@ -1,0 +1,65 @@
+.sso-neutral {
+  box-sizing: border-box;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0;
+  padding: 8px 24px 24px;
+  background: #f0fdf4;
+  color: #14532d;
+  font-family: Inter, system-ui, sans-serif;
+  text-align: center;
+}
+.sso-neutral img {
+  display: block;
+  width: min(220px, 75vw);
+  height: auto;
+  flex-shrink: 0;
+  mix-blend-mode: multiply;
+  clip-path: inset(12% 14% 14% 14%);
+}
+.sso-spinner {
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
+  margin-top: -4px;
+  flex-shrink: 0;
+  border: 3px solid #d5dfe3;
+  border-left-color: #369d48;
+  border-radius: 50%;
+  animation: sso-spin 1s linear infinite;
+}
+.sso-neutral [hidden] {
+  display: none;
+}
+.sso-neutral p {
+  max-width: 40rem;
+  margin: 16px 0 0;
+  line-height: 1.5;
+}
+.sso-neutral button {
+  margin-top: 16px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 8px;
+  background: #15803d;
+  color: white;
+  font: inherit;
+  cursor: pointer;
+}
+.sso-neutral button:focus-visible {
+  outline: 3px solid #14532d;
+  outline-offset: 3px;
+}
+@keyframes sso-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sso-spinner {
+    animation: none;
+  }
+}
