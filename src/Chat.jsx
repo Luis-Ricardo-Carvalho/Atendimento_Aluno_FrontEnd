@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { request } from "./api.js";
-import { Avatar, Badge, Erro, useAsync } from "./ui.jsx";
+import { Avatar, Badge, ConfirmModal, Erro, useAsync } from "./ui.jsx";
 import { categorias, dataHora, disponibilidade, encerrado } from "./format.js";
 
 export default function Chat({ id, eu }) {
@@ -11,6 +11,7 @@ export default function Chat({ id, eu }) {
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState("");
+  const [conf, setConf] = useState(null);
   const fim = useRef(null);
 
   useEffect(() => {
@@ -48,8 +49,7 @@ export default function Chat({ id, eu }) {
     }
     setEnviando(false);
   }
-  async function agir(path, body, confirmar) {
-    if (confirmar && !confirm(confirmar)) return;
+  async function agir(path, body) {
     setErro("");
     try {
       await request(`/atendimentos/${id}/${path}`, { method: "PATCH", body });
@@ -84,10 +84,10 @@ export default function Chat({ id, eu }) {
                   <option value="AGUARDANDO_ALUNO">Aguardando aluno</option>
                 </select>
               </label>
-              <button onClick={() => agir("finalizar", undefined, "Finalizar este atendimento?")}>Finalizar</button>
+              <button onClick={() => setConf({ titulo: "Finalizar atendimento", texto: "Finalizar este atendimento? O histórico continua disponível.", rotulo: "Finalizar", run: () => agir("finalizar") })}>Finalizar</button>
             </>
           ) : (
-            <button className="sec" onClick={() => agir("status", { status: "CANCELADO" }, "Cancelar este atendimento?")}>Cancelar atendimento</button>
+            <button className="sec" onClick={() => setConf({ titulo: "Cancelar atendimento", texto: "Cancelar este atendimento? Esta ação não pode ser desfeita.", rotulo: "Cancelar atendimento", perigo: true, run: () => agir("status", { status: "CANCELADO" }) })}>Cancelar atendimento</button>
           )}
         </div>
       )}
@@ -123,6 +123,9 @@ export default function Chat({ id, eu }) {
           />
           <button disabled={!texto.trim() || enviando} aria-label="Enviar mensagem">{enviando ? "…" : "➤"}</button>
         </form>
+      )}
+      {conf && (
+        <ConfirmModal {...conf} onClose={() => setConf(null)} onConfirm={() => { const r = conf.run; setConf(null); r(); }} />
       )}
     </section>
   );

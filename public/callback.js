@@ -8,7 +8,9 @@ retry.addEventListener('click', () => {
 IfsistemSSO.handleCallback().then(user => {
   if (!user) throw new Error('Retorno de login sem código de autorização.');
   clearTimeout(waiting);
-  location.replace('/');
+  const rota = sessionStorage.getItem('ifconect.atendimento.rota');
+  sessionStorage.removeItem('ifconect.atendimento.rota');
+  location.replace('/' + (rota && /^#\/[\w\/-]*$/.test(rota) ? rota : ''));
 }).catch(error => {
   clearTimeout(waiting);
   document.getElementById('transition').setAttribute('aria-busy', 'false');

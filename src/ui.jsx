@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { iniciais, statusAtendimento } from "./format.js";
 
 export function useAsync(fn, deps) {
@@ -70,4 +70,32 @@ export const Heading = ({ eu, titulo, texto }) => (
     </div>
     <span className="perfil-tag">{perfis[eu.perfil]}</span>
   </div>
+);
+
+export function Modal({ titulo, onClose, children }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    const esc = (e) => e.key === "Escape" && onClose();
+    addEventListener("keydown", esc);
+    ref.current?.querySelector("input,select,textarea,button")?.focus();
+    return () => removeEventListener("keydown", esc);
+  }, []);
+  return (
+    <div className="fundo" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="titulo-dialogo" ref={ref}>
+        <h2 id="titulo-dialogo">{titulo}</h2>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export const ConfirmModal = ({ titulo, texto, rotulo = "Confirmar", perigo, onConfirm, onClose }) => (
+  <Modal titulo={titulo} onClose={onClose}>
+    <p>{texto}</p>
+    <div className="acoes">
+      <button className="sec" onClick={onClose}>Voltar</button>
+      <button className={perigo ? "perigo" : ""} onClick={onConfirm}>{rotulo}</button>
+    </div>
+  </Modal>
 );

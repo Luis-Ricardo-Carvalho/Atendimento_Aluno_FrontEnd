@@ -2,11 +2,13 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import logo from "./assets/brand/ifconect.png";
-import { demo, entrarDemo, request, sair, sessaoDemo } from "./api.js";
+import { demo, entrarDemo, loginSso, request, sair, sessaoDemo } from "./api.js";
 import { perfis } from "./ui.jsx";
 import Profissionais from "./Profissionais.jsx";
 import Meus from "./Meus.jsx";
 import Chat from "./Chat.jsx";
+import Horarios from "./Horarios.jsx";
+import Usuarios, { TrocarMinhaSenha } from "./Usuarios.jsx";
 
 const portal = import.meta.env.VITE_PORTAL_URL;
 
@@ -30,14 +32,20 @@ const Brand = () => (
 );
 
 function Splash({ erro }) {
+  const [lento, setLento] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setLento(true), 5000);
+    return () => clearTimeout(t);
+  }, []);
   return (
     <main className="sso-neutral" aria-busy={!erro}>
       <img src="/brand/ifconect.png" alt="IFConect" />
       {!erro && <div className="sso-spinner" role="status" aria-label="Conectando" />}
+      {!erro && lento && <p>Conectando ao IFSISTEM…</p>}
       {erro && (
         <>
           <p role="alert">{erro}</p>
-          <button onClick={() => window.IfsistemSSO.login()}>Tentar novamente</button>
+          <button onClick={() => loginSso()}>Tentar novamente</button>
         </>
       )}
     </main>
@@ -80,12 +88,22 @@ const data = () =>
 function App() {
   const [eu, setEu] = useState(demo ? sessaoDemo() : null);
   const [erroSso, setErroSso] = useState("");
+  const [menu, setMenu] = useState(false);
+  const [senha, setSenha] = useState(false);
   const rota = useRota();
   useEffect(() => {
     if (demo) return;
     window.IfsistemSSO.getToken()
-      .then((token) => (token ? setEu(window.IfsistemSSO.usuario()) : window.IfsistemSSO.login()))
+      .then((token) => (token ? setEu(window.IfsistemSSO.usuario()) : loginSso()))
       .catch((e) => setErroSso(e.message));
+  }, []);
+  useEffect(() => {
+    setMenu(false);
+  }, [rota.join("/")]);
+  useEffect(() => {
+    const esc = (e) => e.key === "Escape" && setMenu(false);
+    addEventListener("keydown", esc);
+    return () => removeEventListener("keydown", esc);
   }, []);
   if (!eu) {
     return demo ? (
@@ -95,16 +113,28 @@ function App() {
     );
   }
   const aluno = eu.perfil === "ALUNO";
-  const chat = rota[0] === "chat";
-  const meus = rota[0] === "meus" || (!aluno && !chat);
-  const tela = chat ? <Chat key={rota[1]} id={rota[1]} eu={eu} /> : meus ? <Meus eu={eu} /> : <Profissionais eu={eu} />;
-  const itens = [
-    ...(aluno ? [["#/", "Professores e servidores", "♙", !chat && !meus]] : []),
-    ["#/meus", aluno ? "Meus atendimentos" : "Atendimentos recebidos", "▤", meus],
-  ];
+  const profissional = eu.perfil === "PROFESSOR" || eu.perfil === "SERVIDOR";
+  const secretaria = !demo && (eu.perfil === "SERVIDOR" || eu.perfil === "ADMINISTRADOR");
+  const r = rota[0];
+  const chat = r === "chat";
+  const usuarios = r === "usuarios" && secretaria;
+  const horarios = r === "horarios" && profissional;
+  const meus = !chat && !usuarios && !horarios && (r === "meus" || !aluno);
+  const tela = chat ? <Chat key={rota[1]} id={rota[1]} eu={eu} />
+    : usuarios ? <Usuarios eu={eu} />
+    : horarios ? <Horarios eu={eu} />
+    : meus ? <Meus eu={eu} />
+    : <Profissionais eu={eu} />;
+  const nome = chat ? "Conversa" : usuarios ? "Usuários" : horarios ? "Meus horários" : meus ? "Meus atendimentos" : "Professores";
+  const item = (href, rotulo, icone, ativo) => (
+    <a key={href} href={href} className={`nav-link${ativo ? " active" : ""}`} aria-current={ativo ? "page" : undefined}>
+      <span aria-hidden="true">{icone}</span>{rotulo}
+    </a>
+  );
   return (
     <div className="app-shell">
-      <aside className="sidebar">
+      {menu && <div className="overlay" onClick={() => setMenu(false)} aria-hidden="true" />}
+      <aside className={`sidebar${menu ? " aberto" : ""}`} aria-label="Menu lateral">
         <Brand />
         {portal && (
           <a className="portal-link" href={portal}>
@@ -114,33 +144,39 @@ function App() {
         )}
         <p className="nav-caption">ATENDIMENTO AO ALUNO</p>
         <nav aria-label="Principal">
-          {itens.map(([href, rotulo, icone, ativo]) => (
-            <a key={href} href={href} className={`nav-link${ativo ? " active" : ""}`} aria-current={ativo ? "page" : undefined}>
-              <span aria-hidden="true">{icone}</span>
-              {rotulo}
-            </a>
-          ))}
+          {aluno && item("#/", "Professores e servidores", "♙", !chat && !meus && !usuarios && !horarios)}
+          {item("#/meus", aluno ? "Meus atendimentos" : "Atendimentos recebidos", "▤", meus)}
+          {profissional && item("#/horarios", "Meus horários", "◷", horarios)}
         </nav>
+        {secretaria && (
+          <>
+            <p className="nav-caption">ÁREA DA SECRETARIA</p>
+            <nav aria-label="Secretaria">{item("#/usuarios", "Usuários", "♟", usuarios)}</nav>
+          </>
+        )}
         <div className="sidebar-module">
-          <strong>Canal institucional</strong>
-          <p>Converse com professores e servidores e acompanhe suas solicitações.</p>
+          <strong>Atendimento ao aluno</strong>
+          <p>Canal oficial para falar com professores e servidores e acompanhar suas solicitações.</p>
         </div>
         <div className="sidebar-bottom">
           <div className="avatar">{eu.nome.slice(0, 1)}</div>
           <strong>{eu.nome}</strong>
           <small>{perfis[eu.perfil]}</small>
+          {!demo && <button className="logout" onClick={() => setSenha(true)}>Trocar minha senha</button>}
           <button className="logout" onClick={sair}>Sair da conta</button>
         </div>
       </aside>
       <div className="workspace">
         <header className="topbar">
-          <span>
-            Atendimento ao aluno <span className="muted">/ {chat ? "Conversa" : meus ? "Meus atendimentos" : "Professores"}</span>
+          <button className="hamburguer sec" onClick={() => setMenu(!menu)} aria-label="Abrir menu" aria-expanded={menu}>☰</button>
+          <span className="trilha">
+            Atendimento ao aluno <span className="muted">/ {nome}</span>
           </span>
           <time className="header-date">{demo && <span className="perfil-tag">Modo demonstração</span>} {data()}</time>
         </header>
         <main className="content">{tela}</main>
       </div>
+      {senha && <TrocarMinhaSenha onClose={() => setSenha(false)} />}
     </div>
   );
 }
