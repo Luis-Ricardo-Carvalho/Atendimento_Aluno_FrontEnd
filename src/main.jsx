@@ -45,9 +45,10 @@ function Splash({ erro }) {
       {erro && (
         <>
           <p role="alert">{erro}</p>
-          <button onClick={() => loginSso()}>Tentar novamente</button>
+          <button onClick={() => loginSso()}>Entrar com IFSISTEM</button>
         </>
       )}
+      <a className="voltar-portal" href="https://ifsistem-portal.onrender.com">← Portal IFSISTEM</a>
     </main>
   );
 }
